@@ -155,6 +155,13 @@ $(BUILD_DIR):
 	mkdir $@		
 
 #######################################
+# flash to device
+#######################################
+flash: $(BUILD_DIR)/${TARGET}.elf | $(BUILD_DIR)
+	openocd -f interface/stlink.cfg -c "transport select hla_swd" -f target/stm32h7x.cfg -c "program ${BUILD_DIR}/${TARGET}.elf verify reset exit"
+
+
+#######################################
 # clean up
 #######################################
 clean:
