@@ -243,6 +243,8 @@ typedef enum
 #define D8_GPIO_Port GPIOE
 #define SDCKE1_Pin GPIO_PIN_7
 #define SDCKE1_GPIO_Port GPIOH
+#define MCO1_Pin GPIO_PIN_8
+#define MCO1_GPIO_Port GPIOA
 
 #ifdef __cplusplus
 }
