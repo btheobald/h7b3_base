@@ -1,13 +1,24 @@
 #include "main.h"
 #include "stm32h7b3xxq.h"
+#include <stdio.h>
 
 void PWR_Config();
 void RCC_Config();
+void UART1_Config();
 
 int main(void)
 {
+  UART1_Config();
+
+  printf("USART1 Configured\r\n");
+
   PWR_Config();
+
+  printf("Power Configured\r\n");
+
   RCC_Config();
+
+  printf("Clock Configured\r\n");
 
   // MCO Alt function
   MCO1_GPIO_Port->MODER &= ~GPIO_MODER_MODE8_Msk;
@@ -25,32 +36,17 @@ int main(void)
   LCD_BL_CTRL_GPIO_Port->MODER |= GPIO_MODER_MODE1_0;
   LCD_BL_CTRL_GPIO_Port->ODR |= (1 << GPIO_ODR_OD1_Pos);
 
-  // MCO Alt function
-  VCP_TX_GPIO_Port->MODER &= ~GPIO_MODER_MODE9_Msk;
-  VCP_RX_GPIO_Port->MODER &= ~GPIO_MODER_MODE10_Msk;
-  VCP_TX_GPIO_Port->MODER |= GPIO_MODER_MODE9_1; // AF
-  VCP_RX_GPIO_Port->MODER |= GPIO_MODER_MODE10_1; // AF
-  VCP_TX_GPIO_Port->AFR[1] &= ~GPIO_AFRH_AFSEL9_Msk;
-  VCP_RX_GPIO_Port->AFR[1] &= ~GPIO_AFRH_AFSEL10_Msk;
-  VCP_TX_GPIO_Port->AFR[1] |= 7 << GPIO_AFRH_AFSEL9_Pos;
-  VCP_RX_GPIO_Port->AFR[1] |= 7 << GPIO_AFRH_AFSEL10_Pos;
+  printf("Configure Success\r\n");
 
-  USART1->BRR |= (int32_t)(24000000/115200); // 115200 Baud
-  USART1->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
+  char rxb = '\0';
 
   while (1)
   {
-    //for(int i = 100; i < 100; i++) 
-    //  for(int a = 1000; a < 1000; a++)
-    //    asm("mov r0,r0");
     USER_LED1_GPIO_Port->ODR ^= (1 << 11);
 
-    char rxb = '\0';
     while( !( USART1->ISR & USART_ISR_RXNE_RXFNE ) ) {};
     rxb = USART1->RDR;
-    while( !( USART1->ISR & USART_ISR_TXE_TXFNF ) ) {};
-    USART1->TDR = rxb;
-    
+
   }
 }
 
@@ -77,10 +73,19 @@ void RCC_Config() {
   // Wait for HSE to be ready
   while(!(RCC->CR & RCC_CR_HSIRDY)) { }
 
-  // Configure HSI
+  // Configure HSE
   RCC->CR |= RCC_CR_HSEON;
   // Wait for HSE to be ready
   while(!(RCC->CR & RCC_CR_HSERDY)) { }
+
+  // HSE to PLL
+  RCC->PLLCKSELR |= RCC_PLLCKSELR_PLLSRC_NONE;
+
+  // HSE as main clock
+  RCC->CFGR &= ~RCC_CFGR_SWS_Msk;
+  RCC->CFGR |= RCC_CFGR_SWS_1;
+
+  RCC->CR &= ~RCC_CR_HSION;
 
   // AXI/APB/AHB = SYSCLK/2 (64M/32M)
   //RCC->CDCFGR1 |= RCC_CDCFGR1_HPRE_3; 
@@ -90,10 +95,11 @@ void RCC_Config() {
   //RCC->SRDCFGR |= RCC_SRDCFGR_SRDPPRE_DIV2;
 
   // MCO1 Prescaler
-  //RCC->CFGR |= (1 << RCC_CFGR_MCO1PRE_Pos);
+  RCC->CFGR |= (1 << RCC_CFGR_MCO1PRE_Pos);
+  RCC->CFGR |= (2 << RCC_CFGR_MCO1_Pos);
 
   // DIVM3 (/12)
-  RCC->PLLCKSELR |= (12 << RCC_PLLCKSELR_DIVM3_Pos);
+  /*RCC->PLLCKSELR |= (12 << RCC_PLLCKSELR_DIVM3_Pos);
 
   // DIVR3 (Enable for LTDC = 9MHz)
   RCC->PLLCFGR |= RCC_PLLCFGR_DIVR3EN;
@@ -103,18 +109,45 @@ void RCC_Config() {
   // Turn on PLL3
   RCC->CR |= RCC_CR_PLL3ON;
   // Wait for PLL3 to be ready
-  while(!(RCC->CR & RCC_CR_PLL3RDY)) {}
+  while(!(RCC->CR & RCC_CR_PLL3RDY)) {}*/
 
   // Peripheral Clocks
   // Enable GPIO Banks A-K Clocks
   RCC->AHB4ENR |= RCC_AHB4ENR_GPIOAEN | RCC_AHB4ENR_GPIOGEN;
   // Enable LTDC Clock
-  RCC->APB3ENR |= RCC_APB3ENR_LTDCEN;
-  // Enable USART1 Clock
+  //RCC->APB3ENR |= RCC_APB3ENR_LTDCEN;
+}
+
+void UART1_Config() {
+  // Configure CSI
+  RCC->CR |= RCC_CR_CSION;
+  // Wait for HSE to be ready
+  while(!(RCC->CR & RCC_CR_CSIRDY)) { }
+
+  // Select CSI as clock
+  RCC->CDCCIP2R &= ~RCC_CDCCIP2R_USART16910SEL_Msk;
+  RCC->CDCCIP2R |= RCC_CDCCIP2R_USART16910SEL_2;
+
+  // Enable USART1 Peripheral Clock
   RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 
-  // HSE as main clock
-  RCC->CFGR |= RCC_CFGR_SWS_1;
+  // Enable USART1 GPIO Clock
+  RCC->AHB4ENR |= RCC_AHB4ENR_GPIOAEN;
+
+  // MCO Alt function
+  VCP_TX_GPIO_Port->MODER &= ~GPIO_MODER_MODE9_Msk;
+  VCP_RX_GPIO_Port->MODER &= ~GPIO_MODER_MODE10_Msk;
+  VCP_TX_GPIO_Port->MODER |= GPIO_MODER_MODE9_1; // AF
+  VCP_RX_GPIO_Port->MODER |= GPIO_MODER_MODE10_1; // AF
+  VCP_TX_GPIO_Port->AFR[1] &= ~GPIO_AFRH_AFSEL9_Msk;
+  VCP_RX_GPIO_Port->AFR[1] &= ~GPIO_AFRH_AFSEL10_Msk;
+  VCP_TX_GPIO_Port->AFR[1] |= 7 << GPIO_AFRH_AFSEL9_Pos;
+  VCP_RX_GPIO_Port->AFR[1] |= 7 << GPIO_AFRH_AFSEL10_Pos;
+
+  // USART1 Enable
+  USART1->BRR = 0x22; // 115200 Baud
+  USART1->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
+  USART1->CR2 |= USART_CR2_ABREN;
 }
 
 void Error_Handler(void)
@@ -122,4 +155,13 @@ void Error_Handler(void)
   __disable_irq();
   while (1) {
   }
+}
+
+int _write(int handle, char* data, int size) {
+  int count = size;
+  while(count--) {
+    while( !( USART1->ISR & USART_ISR_TXE_TXFNF ) ) {};
+    USART1->TDR = *data++;
+  }
+  return size;
 }
