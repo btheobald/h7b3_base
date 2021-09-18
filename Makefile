@@ -38,7 +38,11 @@ BUILD_DIR = build
 C_SOURCES =  \
 src/main.c \
 src/system_stm32h7xx.c \
-src/stm32h7xx_it.c
+src/stm32h7xx_it.c \
+src/LL/stm32h7xx_ll_utils.c \
+src/LL/stm32h7xx_ll_pwr.c \
+src/LL/stm32h7xx_ll_rcc.c \
+src/LL/stm32h7xx_ll_usart.c
 
 # ASM sources
 ASM_SOURCES =  \
@@ -85,7 +89,8 @@ AS_DEFS =
 
 # C defines
 C_DEFS =  \
--DSTM32H7B3xxQ
+-DSTM32H7B3xxQ \
+-DUSE_FULL_LL_DRIVER
 
 # AS includes
 AS_INCLUDES = 
@@ -94,7 +99,8 @@ AS_INCLUDES =
 C_INCLUDES =  \
 -Iinclude \
 -Iinclude/CMSIS/ARM \
--Iinclude/CMSIS/ST
+-Iinclude/CMSIS/ST \
+-Iinclude/LL
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
@@ -119,7 +125,7 @@ LDSCRIPT = util/STM32H7B3LIHxQ_FLASH.ld
 # libraries
 LIBS = -lc -lm -lnosys 
 LIBDIR = 
-LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -u _printf_float
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin

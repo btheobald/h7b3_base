@@ -1,8 +1,13 @@
 #include "main.h"
 #include "stm32h7b3xxq.h"
 #include <stdio.h>
+#include "stm32h7xx_ll_pwr.h"
+#include "stm32h7xx_ll_rcc.h"
+#include "stm32h7xx_ll_bus.h"
+#include "stm32h7xx_ll_gpio.h"
+#include "stm32h7xx_ll_utils.h"
+#include "stm32h7xx_ll_system.h"
 
-void PWR_Config();
 void RCC_Config();
 void UART1_Config();
 
@@ -10,31 +15,32 @@ int main(void)
 {
   UART1_Config();
 
-  printf("USART1 Configured\r\n");
-
-  PWR_Config();
-
-  printf("Power Configured\r\n");
+  printf("USART1 Configured \n\r\t- CSI = %.1fM\r\n", CSI_VALUE/1E6);
 
   RCC_Config();
 
+  LL_RCC_ClocksTypeDef clk;
+  LL_RCC_GetSystemClocksFreq(&clk);
   printf("Clock Configured\r\n");
 
-  // MCO Alt function
-  MCO1_GPIO_Port->MODER &= ~GPIO_MODER_MODE8_Msk;
-  MCO1_GPIO_Port->MODER |= GPIO_MODER_MODE8_1; // AF
-  MCO1_GPIO_Port->OSPEEDR |= GPIO_OSPEEDR_OSPEED8_0 | GPIO_OSPEEDR_OSPEED8_1; // Max 
-  MCO1_GPIO_Port->AFR[0] &= ~GPIO_AFRL_AFSEL0_Msk;
-  
-  // Configure User LED
-  USER_LED1_GPIO_Port->MODER &= ~GPIO_MODER_MODE11_Msk;
-  USER_LED1_GPIO_Port->MODER |= GPIO_MODER_MODE11_0;
-  USER_LED1_GPIO_Port->ODR |= (1 << GPIO_ODR_OD11_Pos);
+  printf("\t- SYS = %.1fM\tHCLK = %.1fM\r\n", clk.SYSCLK_Frequency/1E6, clk.HCLK_Frequency/1E6);
+  printf("\t- PCLK = %.1fM, %.1fM, %.1fM, %.1fM \r\n", clk.PCLK1_Frequency/1E6, clk.PCLK2_Frequency/1E6, clk.PCLK3_Frequency/1E6, clk.PCLK4_Frequency/1E6);
+
+  // Enable MCO1
+  LL_GPIO_SetPinMode(MCO1_GPIO_Port, MCO1_Pin, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinOutputType(MCO1_GPIO_Port, MCO1_Pin, LL_GPIO_OUTPUT_PUSHPULL);
+  LL_GPIO_SetPinSpeed(MCO1_GPIO_Port, MCO1_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetAFPin_8_15(MCO_GPIO_Port, MCO1_Pin, LL_GPIO_AF_0);
+
+  // Enable LED
+  LL_GPIO_SetPinMode(USER_LED1_GPIO_Port, USER_LED1_Pin, LL_GPIO_MODE_OUTPUT);
+  LL_GPIO_SetOutputPin(USER_LED1_GPIO_Port, USER_LED1_Pin);
 
   // Enable LCD Backlight
-  LCD_BL_CTRL_GPIO_Port->MODER &= ~GPIO_MODER_MODE1_Msk;
-  LCD_BL_CTRL_GPIO_Port->MODER |= GPIO_MODER_MODE1_0;
-  LCD_BL_CTRL_GPIO_Port->ODR |= (1 << GPIO_ODR_OD1_Pos);
+  LL_GPIO_SetPinMode(LCD_BL_CTRL_GPIO_Port, LCD_BL_CTRL_Pin, LL_GPIO_MODE_OUTPUT);
+  LL_GPIO_SetOutputPin(LCD_BL_CTRL_GPIO_Port, LCD_BL_CTRL_Pin);
+
+  printf("GPIO Configured\r\n");
 
   printf("Configure Success\r\n");
 
@@ -46,76 +52,70 @@ int main(void)
 
     while( !( USART1->ISR & USART_ISR_RXNE_RXFNE ) ) {};
     rxb = USART1->RDR;
-
+    printf("%c\r\n", rxb);
   }
 }
 
-void PWR_Config() {
-  /* Set the power supply configuration */
-  PWR->CR3 = PWR_CR3_SMPSEN;
-
-  // Wait for permitted voltage level
-  while (!(PWR->CSR1 & PWR_CSR1_ACTVOSRDY)) { }
-
-  // Wait for SMPS Ready
-  while (!(PWR->CR3 & PWR_CR3_SMPSEXTRDY)) {}
-
-  // Configure for VOS0
-  //PWR->SRDCR = PWR_SRDCR_VOS_0 | PWR_SRDCR_VOS_1;
-
-  // Wait for VOS to be ready (Default VOS3)
-  while(!(PWR->SRDCR & PWR_SRDCR_VOSRDY)) {}
-}
-
 void RCC_Config() {
-  // Configure HSI
-  RCC->CR |= RCC_CR_HSION;
-  // Wait for HSE to be ready
-  while(!(RCC->CR & RCC_CR_HSIRDY)) { }
+  // Configure SMPS
+  LL_PWR_ConfigSupply(LL_PWR_DIRECT_SMPS_SUPPLY);
+  // Scale to boost mode
+  LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE0);
+  // Wait for VOS to be ready
+  while (LL_PWR_IsActiveFlag_VOS() == 0) {
+    
+  }
 
   // Configure HSE
-  RCC->CR |= RCC_CR_HSEON;
+  LL_RCC_HSE_Enable();
   // Wait for HSE to be ready
-  while(!(RCC->CR & RCC_CR_HSERDY)) { }
+  while(!LL_RCC_HSE_IsReady()) { }
 
-  // HSE to PLL
-  RCC->PLLCKSELR |= RCC_PLLCKSELR_PLLSRC_NONE;
+  /* Set FLASH latency */
+  LL_FLASH_SetLatency(LL_FLASH_LATENCY_7);
 
-  // HSE as main clock
-  RCC->CFGR &= ~RCC_CFGR_SWS_Msk;
-  RCC->CFGR |= RCC_CFGR_SWS_1;
+  // PLL1
+  LL_RCC_PLL_SetSource(LL_RCC_PLLSOURCE_HSE); // 24M
+  // Enable PLL Outputs
+  LL_RCC_PLL1P_Enable();
+  LL_RCC_PLL1Q_Enable();
+  LL_RCC_PLL1R_Enable();
+  // Disable Fractional
+  LL_RCC_PLL1FRACN_Disable();
+  // VCO Ranges
+  LL_RCC_PLL1_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_2_4);
+  LL_RCC_PLL1_SetVCOOutputRange(LL_RCC_PLLVCORANGE_WIDE);
+  // Prescalers
+  LL_RCC_PLL1_SetM(12);
+  LL_RCC_PLL1_SetN(280);
+  LL_RCC_PLL1_SetP(2);
+  LL_RCC_PLL1_SetQ(2);
+  LL_RCC_PLL1_SetR(2);
 
-  RCC->CR &= ~RCC_CR_HSION;
+  // Enable PLL
+  LL_RCC_PLL1_Enable();
 
-  // AXI/APB/AHB = SYSCLK/2 (64M/32M)
-  //RCC->CDCFGR1 |= RCC_CDCFGR1_HPRE_3; 
-  //RCC->CDCFGR1 |= RCC_CDCFGR1_CDCPRE_DIV2;
-  //RCC->CDCFGR2 |= RCC_CDCFGR2_CDPPRE1_DIV2;
-  //R/CC->CDCFGR2 |= RCC_CDCFGR2_CDPPRE2_DIV2;
-  //RCC->SRDCFGR |= RCC_SRDCFGR_SRDPPRE_DIV2;
+  // Ensure PLL is locked
+  while(LL_RCC_PLL1_IsReady() != 1) { }
 
-  // MCO1 Prescaler
-  RCC->CFGR |= (1 << RCC_CFGR_MCO1PRE_Pos);
-  RCC->CFGR |= (2 << RCC_CFGR_MCO1_Pos);
+  // Configure SYS/AHB/APB Prescalers
+  LL_RCC_SetSysPrescaler( LL_RCC_SYSCLK_DIV_1 );
+  LL_RCC_SetAHBPrescaler( LL_RCC_AHB_DIV_1 );
+  LL_RCC_SetAPB1Prescaler( LL_RCC_APB1_DIV_2 );
+  LL_RCC_SetAPB2Prescaler( LL_RCC_APB2_DIV_2 );
+  LL_RCC_SetAPB3Prescaler( LL_RCC_APB3_DIV_2 );
+  LL_RCC_SetAPB4Prescaler( LL_RCC_APB4_DIV_2 );
 
-  // DIVM3 (/12)
-  /*RCC->PLLCKSELR |= (12 << RCC_PLLCKSELR_DIVM3_Pos);
+  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL1);
+  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL1) {}
 
-  // DIVR3 (Enable for LTDC = 9MHz)
-  RCC->PLLCFGR |= RCC_PLLCFGR_DIVR3EN;
-  RCC->PLL3DIVR |= 27 << RCC_PLL3DIVR_N3_Pos; // x27
-  RCC->PLL3DIVR |= 15 << RCC_PLL3DIVR_R3_Pos; // /16
+  LL_Init1msTick(280000000);
+  LL_SetSystemCoreClock(280000000);
 
-  // Turn on PLL3
-  RCC->CR |= RCC_CR_PLL3ON;
-  // Wait for PLL3 to be ready
-  while(!(RCC->CR & RCC_CR_PLL3RDY)) {}*/
+  LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_PLL1QCLK, LL_RCC_MCO1_DIV_4);
 
-  // Peripheral Clocks
   // Enable GPIO Banks A-K Clocks
-  RCC->AHB4ENR |= RCC_AHB4ENR_GPIOAEN | RCC_AHB4ENR_GPIOGEN;
-  // Enable LTDC Clock
-  //RCC->APB3ENR |= RCC_APB3ENR_LTDCEN;
+  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOA | LL_AHB4_GRP1_PERIPH_GPIOG);
 }
 
 void UART1_Config() {
@@ -132,22 +132,23 @@ void UART1_Config() {
   RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 
   // Enable USART1 GPIO Clock
-  RCC->AHB4ENR |= RCC_AHB4ENR_GPIOAEN;
+  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOA);
 
-  // MCO Alt function
-  VCP_TX_GPIO_Port->MODER &= ~GPIO_MODER_MODE9_Msk;
-  VCP_RX_GPIO_Port->MODER &= ~GPIO_MODER_MODE10_Msk;
-  VCP_TX_GPIO_Port->MODER |= GPIO_MODER_MODE9_1; // AF
-  VCP_RX_GPIO_Port->MODER |= GPIO_MODER_MODE10_1; // AF
-  VCP_TX_GPIO_Port->AFR[1] &= ~GPIO_AFRH_AFSEL9_Msk;
-  VCP_RX_GPIO_Port->AFR[1] &= ~GPIO_AFRH_AFSEL10_Msk;
-  VCP_TX_GPIO_Port->AFR[1] |= 7 << GPIO_AFRH_AFSEL9_Pos;
-  VCP_RX_GPIO_Port->AFR[1] |= 7 << GPIO_AFRH_AFSEL10_Pos;
+  // USART1 Pin Config
+  LL_GPIO_SetPinMode(VCP_TX_GPIO_Port, VCP_TX_Pin, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinMode(VCP_RX_GPIO_Port, VCP_RX_Pin, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinSpeed(VCP_TX_GPIO_Port, VCP_TX_Pin, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+  LL_GPIO_SetPinSpeed(VCP_RX_GPIO_Port, VCP_RX_Pin, LL_GPIO_SPEED_FREQ_VERY_HIGH);
+  LL_GPIO_SetAFPin_8_15(VCP_TX_GPIO_Port, VCP_TX_Pin, LL_GPIO_AF_7);
+  LL_GPIO_SetAFPin_8_15(VCP_RX_GPIO_Port, VCP_RX_Pin, LL_GPIO_AF_7);
 
   // USART1 Enable
   USART1->BRR = 0x22; // 115200 Baud
   USART1->CR1 |= USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
   USART1->CR2 |= USART_CR2_ABREN;
+
+  // Clear Terminal
+  printf("\033c");
 }
 
 void Error_Handler(void)
