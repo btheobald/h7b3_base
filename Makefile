@@ -37,16 +37,16 @@ BUILD_DIR = build
 # C sources
 C_SOURCES =  \
 src/main.c \
-src/system_stm32h7xx.c \
-src/stm32h7xx_it.c \
-src/LL/stm32h7xx_ll_utils.c \
-src/LL/stm32h7xx_ll_pwr.c \
-src/LL/stm32h7xx_ll_rcc.c \
-src/LL/stm32h7xx_ll_usart.c
+src/isr.c \
+src/st/system_stm32h7xx.c \
+src/st/ll/stm32h7xx_ll_utils.c \
+src/st/ll/stm32h7xx_ll_pwr.c \
+src/st/ll/stm32h7xx_ll_rcc.c \
+src/st/ll/stm32h7xx_ll_usart.c
 
 # ASM sources
 ASM_SOURCES =  \
-src/startup_stm32h7b3xxq.s
+src/st/startup_stm32h7b3xxq.s
 
 #######################################
 # binaries
@@ -98,9 +98,10 @@ AS_INCLUDES =
 # C includes
 C_INCLUDES =  \
 -Iinclude \
--Iinclude/CMSIS/ARM \
--Iinclude/CMSIS/ST \
--Iinclude/LL
+-Iinclude/arm \
+-Iinclude/st \
+-Iinclude/st/ll \
+-Iinclude/dev
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
