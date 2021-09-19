@@ -43,6 +43,7 @@ src/st/ll/stm32h7xx_ll_utils.c \
 src/st/ll/stm32h7xx_ll_pwr.c \
 src/st/ll/stm32h7xx_ll_rcc.c \
 src/st/ll/stm32h7xx_ll_usart.c \
+src/st/ll/stm32h7xx_ll_sdmmc.c \
 src/hagl/hagl.c \
 src/hagl/hagl_hal.c \
 src/hagl/bitmap.c \

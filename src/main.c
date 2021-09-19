@@ -7,6 +7,7 @@
 #include "stm32h7xx_ll_gpio.h"
 #include "stm32h7xx_ll_utils.h"
 #include "stm32h7xx_ll_system.h"
+#include "stm32h7xx_ll_sdmmc.h"
 #include "rk043fn48h_lcd.h"
 #include "clut_l8.h"
 
@@ -22,8 +23,11 @@ void LTDC_L8_Layer_Config(LTDC_Layer_TypeDef * layer, uint8_t * fb_base, uint16_
 void LTDC_CLUT_Config(LTDC_Layer_TypeDef * layer, const uint32_t * clut_base);
 void LCD_Colour_Test(void);
 void LCD_Clear(void);
+uint32_t SDMMC1_Config(void);
 
 unsigned char framebuffer_l8[272*480] = {0}; // Fixed Framebuffer
+
+wchar_t buffer[64];
 
 int main(void)
 {
@@ -59,15 +63,16 @@ int main(void)
   LL_mDelay(100);
   LCD_Colour_Test();
   printf("LCD Colour Test\r\n");
-  LL_mDelay(500);
+  LL_mDelay(100);
   LCD_Clear();
   printf("LCD Cleared\r\n");
 
+  SDMMC1_Config();
+
   printf("Configure Success\r\n");
 
-  wchar_t message[64];
-  swprintf(message, 64, L"HAGL Init");
-  hagl_put_text(message, 10, 10, 247, font9x18_ISO8859_1);
+  swprintf(buffer, 64, L"HAGL Init...\n");
+  hagl_put_text(buffer, 0, 0, 247, font9x18_ISO8859_1);
 
   char rxb = '\0';
   uint8_t line = 0;
@@ -80,7 +85,7 @@ int main(void)
     while( !( USART1->ISR & USART_ISR_RXNE_RXFNE ) ) {};
     rxb = USART1->RDR;
     
-    if(rxb == '\r' | rxb == '\n') {
+    /*if(rxb == '\r' | rxb == '\n') {
       line++;
       col = 0;
     } else if(rxb >= 32 && rxb <= 127 ) {
@@ -91,7 +96,7 @@ int main(void)
       line = 0;
       col = 0;
       LCD_Clear();
-    }
+    }*/
 
     //LL_mDelay(500);
   }
@@ -131,8 +136,8 @@ void RCC_Config(void) {
   LL_RCC_PLL1_SetM(12);
   LL_RCC_PLL1_SetN(280);
   LL_RCC_PLL1_SetP(2);
-  LL_RCC_PLL1_SetQ(2);
-  LL_RCC_PLL1_SetR(2);
+  LL_RCC_PLL1_SetQ(14);
+  LL_RCC_PLL1_SetR(4);
   // Enable PLL
   LL_RCC_PLL1_Enable();
   // Ensure PLL is locked
@@ -355,6 +360,116 @@ void LCD_Clear(void) {
       framebuffer_l8[x + y*480] = 0;
     }
   }
+}
+
+uint32_t SDMMC1_Config(void) {
+  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOC | LL_AHB4_GRP1_PERIPH_GPIOD);
+
+  LL_GPIO_SetPinMode(   SDIO1_CK_GPIO_Port, SDIO1_CK_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_CK_GPIO_Port, SDIO1_CK_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(SDIO1_CK_GPIO_Port, SDIO1_CK_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(  SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_0_7(SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D0_GPIO_Port, SDIO1_D0_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D0_GPIO_Port, SDIO1_D0_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(SDIO1_D0_GPIO_Port, SDIO1_D0_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D1_GPIO_Port, SDIO1_D1_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D1_GPIO_Port, SDIO1_D1_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(SDIO1_D1_GPIO_Port, SDIO1_D1_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D2_GPIO_Port, SDIO1_D2_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D2_GPIO_Port, SDIO1_D2_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(SDIO1_D2_GPIO_Port, SDIO1_D2_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D3_GPIO_Port, SDIO1_D3_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D3_GPIO_Port, SDIO1_D3_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(SDIO1_D3_GPIO_Port, SDIO1_D3_Pin, LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode( uSD_Detect_GPIO_Port, uSD_Detect_Pin, LL_GPIO_MODE_INPUT);
+
+  LL_AHB3_GRP1_EnableClock(LL_AHB3_GRP1_PERIPH_SDMMC1);
+  LL_RCC_SetSDMMCClockSource(LL_RCC_SDMMC_CLKSOURCE_PLL1Q);
+
+  SDMMC_InitTypeDef init;
+  init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+  init.ClockDiv = 128;
+  init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+  init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  init.BusWide = SDMMC_BUS_WIDE_1B;
+  
+  SDMMC_Init(SDMMC1, init);
+  SDMMC_PowerState_ON(SDMMC1);
+
+  LL_mDelay(10);
+
+  uint32_t errorstate;
+  
+  errorstate = SDMMC_CmdGoIdleState(SDMMC1);
+  if (errorstate != 0)
+  {
+    printf("No Card Detected\r\n");
+    return errorstate;
+  }
+
+  /* CMD8: SEND_IF_COND: Command available only on V2.0 cards */
+  errorstate = SDMMC_CmdOperCond(SDMMC1);
+  if (errorstate != 0)
+  {
+    printf("Card Version V1\r\n");
+    /* CMD0: GO_IDLE_STATE */
+    errorstate = SDMMC_CmdGoIdleState(SDMMC1);
+    if (errorstate != 0)
+    {
+      return errorstate;
+    }
+  }
+  else
+  {
+    printf("Card Version V2\r\n");
+  }
+
+  errorstate = SDMMC_CmdSendCID(SDMMC1);
+  if (errorstate != 0)
+  {
+    printf("Error Reading CID\r\n");
+    return errorstate;
+  }
+  uint32_t CID[4];
+  CID[0] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP1);
+  CID[1] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP2);
+  CID[2] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP3);
+  CID[3] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP4);
+  printf("CID:\r\n%08X, %08X, %08X, %08X\r\n", CID[0], CID[1], CID[2], CID[3]);
+
+  uint16_t sd_rel_addr = 1;
+  errorstate = SDMMC_CmdSetRelAdd(SDMMC1, &sd_rel_addr);
+  if (errorstate != 0)
+  {
+    printf("Error Setting Relative Address\r\n");
+    return errorstate;
+  }
+  printf("RelAddr: %d\r\n", sd_rel_addr);
+
+  errorstate = SDMMC_CmdSendCSD(SDMMC1, sd_rel_addr << 16);
+  if (errorstate != 0)
+  {
+    printf("Error Reading CSD\r\n");
+    return errorstate;
+  }
+  uint32_t CSD[4];
+  CSD[0] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP1);
+  CSD[1] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP2);
+  CSD[2] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP3);
+  CSD[3] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP4);
+  printf("CSD:\r\n%08X, %08X, %08X, %08X\r\n", CSD[0], CSD[1], CSD[2], CSD[3]);
+  printf("Class: %d\r\n", SDMMC_GetResponse(SDMMC1, SDMMC_RESP2) >> 20);
+  
+  errorstate = SDMMC_CmdSelDesel(SDMMC1, (uint32_t)(((uint32_t)sd_rel_addr) << 16U));
+  if (errorstate != 0)
+  {
+    printf("Error Selecting Card\r\n");
+    return errorstate;
+  }
+  
+  return 0;
 }
 
 void Error_Handler(void)

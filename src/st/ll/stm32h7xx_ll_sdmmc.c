@@ -151,7 +151,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
+#include "stm32h7xx_ll_sdmmc.h"
+#include "stm32_assert.h"
 
 /** @addtogroup STM32H7xx_HAL_Driver
   * @{
@@ -161,8 +162,6 @@
   * @brief Low layer module for SD
   * @{
   */
-
-#if defined (HAL_SD_MODULE_ENABLED) || defined (HAL_MMC_MODULE_ENABLED)
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -1609,7 +1608,6 @@ static uint32_t SDMMC_GetCmdError(SDMMC_TypeDef *SDMMCx)
   * @}
   */
 
-#endif /* HAL_SD_MODULE_ENABLED || HAL_MMC_MODULE_ENABLED */
 /**
   * @}
   */
