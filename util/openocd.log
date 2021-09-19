@@ -3,12 +3,12 @@ Info : Listening on port 6666 for tcl connections
 Info : Listening on port 4444 for telnet connections
 Info : clock speed 1800 kHz
 Info : STLINK V3J7M3 (API v3) VID:PID 0483:374E
-Info : Target voltage: 3.297196
+Info : Target voltage: 3.293992
 Info : stm32h7x.cpu0: hardware has 8 breakpoints, 4 watchpoints
 Info : starting gdb server for stm32h7x.cpu0 on pipe
 Info : accepting 'gdb' connection from pipe
 target halted due to debug-request, current mode: Thread 
-xPSR: 0x41010000 pc: 0x0800403a msp: 0x2001ffb8
+xPSR: 0x610b0000 pc: 0x08005974 msp: 0x2001feb0
 Info : Device: STM32H7Ax/7Bx
 Info : flash size probed value 2048
 Info : STM32H7 flash has dual banks

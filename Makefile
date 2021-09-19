@@ -42,7 +42,13 @@ src/st/system_stm32h7xx.c \
 src/st/ll/stm32h7xx_ll_utils.c \
 src/st/ll/stm32h7xx_ll_pwr.c \
 src/st/ll/stm32h7xx_ll_rcc.c \
-src/st/ll/stm32h7xx_ll_usart.c
+src/st/ll/stm32h7xx_ll_usart.c \
+src/hagl/hagl.c \
+src/hagl/hagl_hal.c \
+src/hagl/bitmap.c \
+src/hagl/clip.c \
+src/hagl/fontx.c \
+src/hagl/hsl.c 
 
 # ASM sources
 ASM_SOURCES =  \
@@ -101,7 +107,8 @@ C_INCLUDES =  \
 -Iinclude/arm \
 -Iinclude/st \
 -Iinclude/st/ll \
--Iinclude/dev
+-Iinclude/dev \
+-Iinclude/hagl
 
 # compile gcc flags
 ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections

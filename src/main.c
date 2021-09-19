@@ -8,10 +8,22 @@
 #include "stm32h7xx_ll_utils.h"
 #include "stm32h7xx_ll_system.h"
 #include "rk043fn48h_lcd.h"
+#include "clut_l8.h"
 
-void RCC_Config();
-void UART1_Config();
-void LTDC_Config();
+#include "hagl.h"
+#include "hagl_hal.h"
+#include "font9x18_ISO8859_1.h"
+
+void RCC_Config(void);
+void UART1_Config(void);
+void LTDC_Config(void);
+void LTDC_GPIO_Config(void);
+void LTDC_L8_Layer_Config(LTDC_Layer_TypeDef * layer, uint8_t * fb_base, uint16_t s_x, uint16_t s_y, uint16_t e_x, uint16_t e_y);
+void LTDC_CLUT_Config(LTDC_Layer_TypeDef * layer, const uint32_t * clut_base);
+void LCD_Colour_Test(void);
+void LCD_Clear(void);
+
+unsigned char framebuffer_l8[272*480] = {0}; // Fixed Framebuffer
 
 int main(void)
 {
@@ -44,9 +56,22 @@ int main(void)
 
   printf("LTDC Configured\r\n");
 
+  LL_mDelay(100);
+  LCD_Colour_Test();
+  printf("LCD Colour Test\r\n");
+  LL_mDelay(500);
+  LCD_Clear();
+  printf("LCD Cleared\r\n");
+
   printf("Configure Success\r\n");
 
+  wchar_t message[64];
+  swprintf(message, 64, L"HAGL Init");
+  hagl_put_text(message, 10, 10, 247, font9x18_ISO8859_1);
+
   char rxb = '\0';
+  uint8_t line = 0;
+  uint8_t col = 0;
 
   while (1)
   {
@@ -54,11 +79,25 @@ int main(void)
 
     while( !( USART1->ISR & USART_ISR_RXNE_RXFNE ) ) {};
     rxb = USART1->RDR;
-    printf("%c\r\n", rxb);
+    
+    if(rxb == '\r' | rxb == '\n') {
+      line++;
+      col = 0;
+    } else if(rxb >= 32 && rxb <= 127 ) {
+      swprintf(message, 64, L"%c", rxb);
+      hagl_put_text(message, 10+(9*col), 10+(18*line), 247, font9x18_ISO8859_1);
+      col++;   
+    } if (rxb == 27) {
+      line = 0;
+      col = 0;
+      LCD_Clear();
+    }
+
+    //LL_mDelay(500);
   }
 }
 
-void RCC_Config() {
+void RCC_Config(void) {
   // Configure SMPS
   LL_PWR_ConfigSupply(LL_PWR_DIRECT_SMPS_SUPPLY);
   // Scale to boost mode
@@ -140,7 +179,7 @@ void RCC_Config() {
   LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOA | LL_AHB4_GRP1_PERIPH_GPIOG);
 }
 
-void UART1_Config() {
+void UART1_Config(void) {
   // Configure CSI
   RCC->CR |= RCC_CR_CSION;
   // Wait for HSE to be ready
@@ -173,14 +212,13 @@ void UART1_Config() {
   printf("\033c");
 }
 
-void LTDC_Config() {
+void LTDC_Config(void) {
+  // Configure GPIO
+  LTDC_GPIO_Config();
+
   // Enable LTDC Peripheral Clock
   LL_APB3_GRP1_EnableClock(LL_APB3_GRP1_PERIPH_LTDC);
-
-  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOA | LL_AHB4_GRP1_PERIPH_GPIOH | LL_AHB4_GRP1_PERIPH_GPIOI | LL_AHB4_GRP1_PERIPH_GPIOJ | LL_AHB4_GRP1_PERIPH_GPIOK);
-
-  LTDC->GCR |= LTDC_GCR_LTDCEN;
-
+  
   // Timing Config
   LTDC->SSCR = (RK043FN48H_HSYNC-1) << 16 | (RK043FN48H_VSYNC-1); // Sync Pulses
   LTDC->BPCR = (  RK043FN48H_HBP-1) << 16 | (  RK043FN48H_VBP-1); // Back Porch
@@ -188,8 +226,23 @@ void LTDC_Config() {
   LTDC->TWCR = (   RK043FN48H_TW-1) << 16 | (   RK043FN48H_TH-1); // Total Period
 
   // Background Colour
-  LTDC->BCCR = 0x00000000;
-  
+  LTDC->BCCR = 0x00550000;
+
+  // Configure Layer
+  LTDC_L8_Layer_Config(LTDC_Layer1, framebuffer_l8, 0, 0, 480, 272);
+
+  LTDC->SRCR |= LTDC_SRCR_IMR;
+
+  // Enable LTDC
+  LTDC->GCR |= LTDC_GCR_LTDCEN;
+}
+
+void LTDC_GPIO_Config(void) {
+  //LTDC Enable GPIO Clocks
+  LL_AHB4_GRP1_EnableClock( LL_AHB4_GRP1_PERIPH_GPIOA | LL_AHB4_GRP1_PERIPH_GPIOH \
+                          | LL_AHB4_GRP1_PERIPH_GPIOI | LL_AHB4_GRP1_PERIPH_GPIOJ \
+                          | LL_AHB4_GRP1_PERIPH_GPIOK );
+
   // Config Pins
   LL_GPIO_SetPinMode(   LCD_BL_CTRL_GPIO_Port,LCD_BL_CTRL_Pin, LL_GPIO_MODE_OUTPUT);
   LL_GPIO_SetOutputPin( LCD_BL_CTRL_GPIO_Port,LCD_BL_CTRL_Pin);
@@ -203,6 +256,7 @@ void LTDC_Config() {
   LL_GPIO_SetAFPin_8_15(LCD_HSYNC_GPIO_Port,  LCD_HSYNC_Pin,  LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_VSYNC_GPIO_Port,  LCD_VSYNC_Pin,  LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_8_15(LCD_VSYNC_GPIO_Port,  LCD_VSYNC_Pin,  LL_GPIO_AF_14);
+
   LL_GPIO_SetPinMode(   LCD_R0_GPIO_Port,     LCD_R0_Pin,     LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_8_15(LCD_R0_GPIO_Port,     LCD_R0_Pin,     LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_R1_GPIO_Port,     LCD_R1_Pin,     LL_GPIO_MODE_ALTERNATE);
@@ -219,6 +273,7 @@ void LTDC_Config() {
   LL_GPIO_SetAFPin_0_7( LCD_R6_GPIO_Port,     LCD_R6_Pin,     LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_R7_GPIO_Port,     LCD_R7_Pin,     LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_0_7( LCD_R7_GPIO_Port,     LCD_R7_Pin,     LL_GPIO_AF_14);
+
   LL_GPIO_SetPinMode(   LCD_G0_GPIO_Port,     LCD_G0_Pin,     LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_0_7( LCD_G0_GPIO_Port,     LCD_G0_Pin,     LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_G1_GPIO_Port,     LCD_G1_Pin,     LL_GPIO_MODE_ALTERNATE);
@@ -235,6 +290,7 @@ void LTDC_Config() {
   LL_GPIO_SetAFPin_0_7( LCD_G6_GPIO_Port,     LCD_G6_Pin,     LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_G7_GPIO_Port,     LCD_G7_Pin,     LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_0_7( LCD_G7_GPIO_Port,     LCD_G7_Pin,     LL_GPIO_AF_14);
+
   LL_GPIO_SetPinMode(   LCD_B0_GPIO_Port,     LCD_B0_Pin,     LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_8_15(LCD_B0_GPIO_Port,     LCD_B0_Pin,     LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_B1_GPIO_Port,     LCD_B1_Pin,     LL_GPIO_MODE_ALTERNATE);
@@ -251,6 +307,54 @@ void LTDC_Config() {
   LL_GPIO_SetAFPin_0_7( LCD_B6_GPIO_Port,     LCD_B6_Pin,     LL_GPIO_AF_14);
   LL_GPIO_SetPinMode(   LCD_B7_GPIO_Port,     LCD_B7_Pin,     LL_GPIO_MODE_ALTERNATE);
   LL_GPIO_SetAFPin_0_7( LCD_B7_GPIO_Port,     LCD_B7_Pin,     LL_GPIO_AF_14);
+}
+
+void LTDC_L8_Layer_Config(LTDC_Layer_TypeDef * layer, uint8_t * fb_base, uint16_t s_x, uint16_t s_y, uint16_t e_x, uint16_t e_y) {
+  layer->WHPCR = ((e_x+8) << LTDC_LxWHPCR_WHSPPOS_Pos) | s_x+8;
+  layer->WVPCR = ((e_y+2) << LTDC_LxWVPCR_WVSPPOS_Pos) | s_y+2;
+  layer->PFCR = 5; // L8
+  layer->CFBAR = fb_base;
+  layer->CFBLR = ((e_x - s_x) << LTDC_LxCFBLR_CFBP_Pos) | ((e_x - s_x) + 7);
+  layer->CFBLNR = (e_y - s_y);
+
+  LTDC_CLUT_Config(layer, CLUT_L8);
+
+  layer->CACR = 0xFF;
+  layer->DCCR = 0xFFFF0000;
+
+  LTDC->SRCR |= LTDC_SRCR_IMR;
+
+  layer->CR |= LTDC_LxCR_LEN | LTDC_LxCR_CLUTEN;
+}
+
+void LTDC_CLUT_Config(LTDC_Layer_TypeDef * layer, const uint32_t * clut_base) {
+  for(int addr = 0; addr < 255; addr++) {
+    uint32_t tmp = (addr << LTDC_LxCLUTWR_CLUTADD_Pos) | clut_base[addr];
+    layer->CLUTWR = tmp;
+  }
+}
+
+void LCD_Colour_Test(void) {
+  const x_size = 30;
+  const y_size = 17;
+  const x_per_row = (480/x_size);
+  const y_per_col = (272/y_size);
+
+  uint8_t tmp_col = 0;
+  for(int x = 0; x < 480; x++) {
+    for(int y = 0; y < 272; y++) {
+      tmp_col = ((x)/x_size) + (y/y_size)*x_per_row;
+      framebuffer_l8[x + y*480] = tmp_col;
+    }
+  }
+}
+
+void LCD_Clear(void) {
+  for(int x = 0; x < 480; x++) {
+    for(int y = 0; y < 272; y++) {
+      framebuffer_l8[x + y*480] = 0;
+    }
+  }
 }
 
 void Error_Handler(void)

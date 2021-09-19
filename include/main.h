@@ -7,6 +7,8 @@ extern "C" {
 
 void Error_Handler(void);
 
+extern unsigned char framebuffer_l8[272*480]; // Fixed Framebuffer
+
 // LCD Control
 #define LCD_DE_Pin LL_GPIO_PIN_7
 #define LCD_DE_GPIO_Port GPIOK
