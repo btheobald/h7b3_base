@@ -3,14 +3,135 @@ Info : Listening on port 6666 for tcl connections
 Info : Listening on port 4444 for telnet connections
 Info : clock speed 1800 kHz
 Info : STLINK V3J7M3 (API v3) VID:PID 0483:374E
-Info : Target voltage: 3.293992
+Info : Target voltage: 3.293396
 Info : stm32h7x.cpu0: hardware has 8 breakpoints, 4 watchpoints
 Info : starting gdb server for stm32h7x.cpu0 on pipe
 Info : accepting 'gdb' connection from pipe
 target halted due to debug-request, current mode: Thread 
-xPSR: 0x610b0000 pc: 0x08005974 msp: 0x2001feb0
+xPSR: 0x61010000 pc: 0x08005c1c msp: 0x2001ffb8
 Info : Device: STM32H7Ax/7Bx
 Info : flash size probed value 2048
 Info : STM32H7 flash has dual banks
 Info : Bank (0) size is 1024 kb, base address is 0x08000000
+target halted due to debug-request, current mode: Thread 
+xPSR: 0x01000000 pc: 0x080067c8 msp: 0x20020000
+Info : accepting 'telnet' connection on tcp/4444
+Info : halted: PC: 0x08005976
+Info : halted: PC: 0x08006128
+Info : halted: PC: 0x08006130
+Info : halted: PC: 0x08006132
+Info : halted: PC: 0x08006134
+Info : halted: PC: 0x08006136
+Info : halted: PC: 0x08006138
+Info : halted: PC: 0x0800613c
+Info : halted: PC: 0x0800613e
+Info : halted: PC: 0x08006140
+Info : halted: PC: 0x080060f8
+Info : halted: PC: 0x08006146
+Info : halted: PC: 0x0800607c
+Info : halted: PC: 0x0800607e
+Info : halted: PC: 0x08006080
+Info : halted: PC: 0x08006082
+Info : halted: PC: 0x08006086
+Info : halted: PC: 0x08006088
+Info : halted: PC: 0x0800608c
+Info : halted: PC: 0x08006090
+Info : halted: PC: 0x08006092
+Info : halted: PC: 0x08006094
+Info : halted: PC: 0x08006096
+Info : halted: PC: 0x08006098
+Info : halted: PC: 0x0800609c
+Info : halted: PC: 0x0800609e
+Info : halted: PC: 0x080060a0
+Info : halted: PC: 0x080060a2
+Info : halted: PC: 0x080060a4
+Info : halted: PC: 0x0800614a
+Info : halted: PC: 0x0800614c
+Info : halted: PC: 0x0800597a
+Info : halted: PC: 0x0800597c
+Info : halted: PC: 0x0800597e
+Info : halted: PC: 0x08005980
+Info : halted: PC: 0x0800651c
+Info : halted: PC: 0x08005986
+Info : halted: PC: 0x08005a78
+Info : halted: PC: 0x08005a7a
+Info : halted: PC: 0x08001770
+Info : halted: PC: 0x08005a80
+Info : halted: PC: 0x08005a82
+Info : halted: PC: 0x080062e6
+Info : halted: PC: 0x08005a88
+Info : halted: PC: 0x08005a8a
+Info : halted: PC: 0x0800599a
+Info : halted: PC: 0x0800599c
+Info : halted: PC: 0x0800637c
+Info : halted: PC: 0x08006384
+Info : halted: PC: 0x08006386
+Info : halted: PC: 0x08006388
+Info : halted: PC: 0x0800638a
+Info : halted: PC: 0x0800638e
+Info : halted: PC: 0x08006390
+Info : halted: PC: 0x08006392
+Info : halted: PC: 0x08006396
+Info : halted: PC: 0x08006398
+Info : halted: PC: 0x0800639a
+Info : halted: PC: 0x080060f8
+Info : halted: PC: 0x080060fa
+Info : halted: PC: 0x080060fc
+Info : halted: PC: 0x080060fe
+Info : halted: PC: 0x08006100
+Info : halted: PC: 0x08006102
+Info : halted: PC: 0x08006104
+Info : halted: PC: 0x08006106
+Info : halted: PC: 0x08006108
+Info : halted: PC: 0x0800610a
+Info : halted: PC: 0x0800610c
+Info : halted: PC: 0x0800610e
+Info : halted: PC: 0x08006110
+Info : halted: PC: 0x08006112
+Info : halted: PC: 0x08006114
+Info : halted: PC: 0x08006116
+Info : halted: PC: 0x0800639e
+Info : halted: PC: 0x080063a0
+Info : halted: PC: 0x08006318
+Info : halted: PC: 0x0800631a
+Info : halted: PC: 0x0800631c
+Info : halted: PC: 0x0800631e
+Info : halted: PC: 0x08006322
+Info : halted: PC: 0x08006324
+Info : halted: PC: 0x08006328
+Info : halted: PC: 0x0800632c
+Info : halted: PC: 0x0800632e
+Info : halted: PC: 0x08006330
+Info : halted: PC: 0x08006332
+Info : halted: PC: 0x08006334
+Info : halted: PC: 0x08006338
+Info : halted: PC: 0x0800633a
+Info : halted: PC: 0x0800633e
+Info : halted: PC: 0x08006340
+Info : halted: PC: 0x08006342
+Info : halted: PC: 0x08006346
+Info : halted: PC: 0x08006358
+Info : halted: PC: 0x0800635a
+Info : halted: PC: 0x0800635c
+Info : halted: PC: 0x0800635e
+Info : halted: PC: 0x080063a4
+Info : halted: PC: 0x080063a6
+Info : halted: PC: 0x080059a0
+Info : halted: PC: 0x080059a2
+Info : halted: PC: 0x080059a4
+Info : halted: PC: 0x08005a8e
+Info : halted: PC: 0x08005a90
+Info : halted: PC: 0x08001770
+Info : halted: PC: 0x08005a72
+Info : halted: PC: 0x08005a74
+Info : halted: PC: 0x08005a76
+Info : halted: PC: 0x08005bec
+Info : halted: PC: 0x08005bee
+Info : halted: PC: 0x08001770
+Info : halted: PC: 0x08005bf4
+Info : halted: PC: 0x08005bf6
+Info : halted: PC: 0x08005bf8
+Info : halted: PC: 0x08005bfa
+Info : halted: PC: 0x08001994
+Info : dropped 'telnet' connection
 Info : dropped 'gdb' connection

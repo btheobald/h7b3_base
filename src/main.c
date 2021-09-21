@@ -62,10 +62,10 @@ int main(void)
 
   LL_mDelay(100);
   LCD_Colour_Test();
-  printf("LCD Colour Test\r\n");
+  printf("\tLCD Colour Test\r\n");
   LL_mDelay(100);
   LCD_Clear();
-  printf("LCD Cleared\r\n");
+  printf("\tLCD Cleared\r\n");
 
   SDMMC1_Config();
 
@@ -363,30 +363,30 @@ void LCD_Clear(void) {
 }
 
 uint32_t SDMMC1_Config(void) {
-  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOC | LL_AHB4_GRP1_PERIPH_GPIOD);
-
-  LL_GPIO_SetPinMode(   SDIO1_CK_GPIO_Port, SDIO1_CK_Pin,   LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetAFPin_8_15(SDIO1_CK_GPIO_Port, SDIO1_CK_Pin,   LL_GPIO_AF_12);
-  LL_GPIO_SetPinSpeed(SDIO1_CK_GPIO_Port, SDIO1_CK_Pin, LL_GPIO_SPEED_HIGH);
-  LL_GPIO_SetPinMode(  SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetAFPin_0_7(SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_AF_12);
-  LL_GPIO_SetPinSpeed(SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin, LL_GPIO_SPEED_HIGH);
-  LL_GPIO_SetPinMode(   SDIO1_D0_GPIO_Port, SDIO1_D0_Pin,   LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetAFPin_8_15(SDIO1_D0_GPIO_Port, SDIO1_D0_Pin,   LL_GPIO_AF_12);
-  LL_GPIO_SetPinSpeed(SDIO1_D0_GPIO_Port, SDIO1_D0_Pin, LL_GPIO_SPEED_HIGH);
-  LL_GPIO_SetPinMode(   SDIO1_D1_GPIO_Port, SDIO1_D1_Pin,   LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetAFPin_8_15(SDIO1_D1_GPIO_Port, SDIO1_D1_Pin,   LL_GPIO_AF_12);
-  LL_GPIO_SetPinSpeed(SDIO1_D1_GPIO_Port, SDIO1_D1_Pin, LL_GPIO_SPEED_HIGH);
-  LL_GPIO_SetPinMode(   SDIO1_D2_GPIO_Port, SDIO1_D2_Pin,   LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetAFPin_8_15(SDIO1_D2_GPIO_Port, SDIO1_D2_Pin,   LL_GPIO_AF_12);
-  LL_GPIO_SetPinSpeed(SDIO1_D2_GPIO_Port, SDIO1_D2_Pin, LL_GPIO_SPEED_HIGH);
-  LL_GPIO_SetPinMode(   SDIO1_D3_GPIO_Port, SDIO1_D3_Pin,   LL_GPIO_MODE_ALTERNATE);
-  LL_GPIO_SetAFPin_8_15(SDIO1_D3_GPIO_Port, SDIO1_D3_Pin,   LL_GPIO_AF_12);
-  LL_GPIO_SetPinSpeed(SDIO1_D3_GPIO_Port, SDIO1_D3_Pin, LL_GPIO_SPEED_HIGH);
-  LL_GPIO_SetPinMode( uSD_Detect_GPIO_Port, uSD_Detect_Pin, LL_GPIO_MODE_INPUT);
-
   LL_AHB3_GRP1_EnableClock(LL_AHB3_GRP1_PERIPH_SDMMC1);
   LL_RCC_SetSDMMCClockSource(LL_RCC_SDMMC_CLKSOURCE_PLL1Q);
+  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOC | LL_AHB4_GRP1_PERIPH_GPIOD);
+
+  LL_GPIO_SetPinMode(   SDIO1_CK_GPIO_Port,  SDIO1_CK_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_CK_GPIO_Port,  SDIO1_CK_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(  SDIO1_CK_GPIO_Port,  SDIO1_CK_Pin,   LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_0_7( SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(  SDIO1_CMD_GPIO_Port, SDIO1_CMD_Pin,  LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D0_GPIO_Port,  SDIO1_D0_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D0_GPIO_Port,  SDIO1_D0_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(  SDIO1_D0_GPIO_Port,  SDIO1_D0_Pin,   LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D1_GPIO_Port,  SDIO1_D1_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D1_GPIO_Port,  SDIO1_D1_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(  SDIO1_D1_GPIO_Port,  SDIO1_D1_Pin,   LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D2_GPIO_Port,  SDIO1_D2_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D2_GPIO_Port,  SDIO1_D2_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(  SDIO1_D2_GPIO_Port,  SDIO1_D2_Pin,   LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode(   SDIO1_D3_GPIO_Port,  SDIO1_D3_Pin,   LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetAFPin_8_15(SDIO1_D3_GPIO_Port,  SDIO1_D3_Pin,   LL_GPIO_AF_12);
+  LL_GPIO_SetPinSpeed(  SDIO1_D3_GPIO_Port,  SDIO1_D3_Pin,   LL_GPIO_SPEED_HIGH);
+  LL_GPIO_SetPinMode( uSD_Detect_GPIO_Port,  uSD_Detect_Pin, LL_GPIO_MODE_INPUT);
+  LL_GPIO_SetPinPull( uSD_Detect_GPIO_Port,  uSD_Detect_Pin, LL_GPIO_PULL_UP);
 
   SDMMC_InitTypeDef init;
   init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
@@ -402,34 +402,75 @@ uint32_t SDMMC1_Config(void) {
 
   uint32_t errorstate;
   
+  printf("SD Init\r\n");
+
+  if (LL_GPIO_IsInputPinSet(uSD_Detect_GPIO_Port,uSD_Detect_Pin)) {
+    printf("\tCard Not Present\r\n");
+    return 0;
+  } 
+
   errorstate = SDMMC_CmdGoIdleState(SDMMC1);
-  if (errorstate != 0)
-  {
-    printf("No Card Detected\r\n");
-    return errorstate;
-  }
+  if (errorstate != 0) return errorstate;
 
   /* CMD8: SEND_IF_COND: Command available only on V2.0 cards */
   errorstate = SDMMC_CmdOperCond(SDMMC1);
+  if (errorstate != 0) 
+    errorstate = SDMMC_CmdGoIdleState(SDMMC1);
+    if(errorstate != 0) return errorstate;
+
+  printf("\tCard Version V2\r\n");
+
+  __IO uint32_t count = 0U;
+  uint32_t response = 0U;
+  uint32_t validvoltage = 0U;
+  while ((count < SDMMC_MAX_VOLT_TRIAL) && (validvoltage == 0U)) {
+    /* SEND CMD55 APP_CMD with RCA as 0 */
+    errorstate = SDMMC_CmdAppCommand(SDMMC1, 0);
+    if (errorstate != 0) return errorstate;
+
+    /* Send CMD41 */
+    errorstate = SDMMC_CmdAppOperCommand(SDMMC1, SDMMC_VOLTAGE_WINDOW_SD | SDMMC_HIGH_CAPACITY | SD_SWITCH_1_8V_CAPACITY);
+    if (errorstate != 0) return errorstate;
+
+    /* Get command response */
+    response = SDMMC_GetResponse(SDMMC1, SDMMC_RESP1);
+
+    /* Get operating voltage*/
+    validvoltage = (((response >> 31U) == 1U) ? 1U : 0U);
+    if(validvoltage) 
+      printf("\tVoltage Valid\r\n");
+    else
+      printf("\tVoltage Not Valid\r\n");
+
+    count++;
+  }   
+
+  if (count >= SDMMC_MAX_VOLT_TRIAL)
+  {
+    printf("\tInvalid Voltage Range\r\n");
+    return errorstate;
+  }
+
+  if ((response & SDMMC_HIGH_CAPACITY) == SDMMC_HIGH_CAPACITY) /* (response &= SD_HIGH_CAPACITY) */
+  {
+    printf("\tHC/XC Detected\r\n");
+  }
+
   if (errorstate != 0)
   {
-    printf("Card Version V1\r\n");
-    /* CMD0: GO_IDLE_STATE */
-    errorstate = SDMMC_CmdGoIdleState(SDMMC1);
-    if (errorstate != 0)
-    {
-      return errorstate;
-    }
+    printf("\tPower On Failed\r\n");
+    return errorstate;
   }
-  else
-  {
-    printf("Card Version V2\r\n");
+
+  if(SDMMC_GetPowerState(SDMMC1) == 0) {
+    printf("\tPower State Fail\r\n");
+    return errorstate;
   }
 
   errorstate = SDMMC_CmdSendCID(SDMMC1);
   if (errorstate != 0)
   {
-    printf("Error Reading CID\r\n");
+    printf("\tError Reading CID\r\n");
     return errorstate;
   }
   uint32_t CID[4];
@@ -437,21 +478,29 @@ uint32_t SDMMC1_Config(void) {
   CID[1] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP2);
   CID[2] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP3);
   CID[3] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP4);
-  printf("CID:\r\n%08X, %08X, %08X, %08X\r\n", CID[0], CID[1], CID[2], CID[3]);
+  printf("\tCID: %08X - %08X - %08X - %08X\r\n", CID[0], CID[1], CID[2], CID[3]);
+
+  printf("\t\t- MID: %d\r\n", (CID[0] & 0xFF000000) >> 24);
+  printf("\t\t- OID: %c%c\r\n", (CID[0] & 0x00FF0000) >> 16, (CID[0] & 0x0000FF00) >> 8 );
+  printf("\t\t- PNM: %c%c%c%c%c\r\n", (CID[0] & 0x000000FF), (CID[1] & 0xFF000000) >> 24, (CID[1] & 0x00FF0000) >> 16, (CID[1] & 0x0000FF00) >> 8, (CID[1] & 0x000000FF));
+  printf("\t\t- PRV: %01x%01x\r\n", (CID[2] & 0xF0000000) >> 28, (CID[2] & 0x0F000000) >> 24);
+  printf("\t\t- PSN: %06X%02X\r\n", (CID[2] & 0x00FFFFFF), (CID[3] & 0xFF000000) >> 24);
+  printf("\t\t- MDT: %d/%d\r\n", (CID[3] & 0x00000F00) >> 8, ((CID[3] & 0x000FF000) >> 12)+2000);
+  printf("\t\t- CRC: %02X\t\r\n", (CID[3] & 0x000000FE) >> 1);
 
   uint16_t sd_rel_addr = 1;
   errorstate = SDMMC_CmdSetRelAdd(SDMMC1, &sd_rel_addr);
   if (errorstate != 0)
   {
-    printf("Error Setting Relative Address\r\n");
+    printf("\tError Setting Relative Address\r\n");
     return errorstate;
   }
-  printf("RelAddr: %d\r\n", sd_rel_addr);
+  printf("\tRelAddr: %d\r\n", sd_rel_addr);
 
   errorstate = SDMMC_CmdSendCSD(SDMMC1, sd_rel_addr << 16);
   if (errorstate != 0)
   {
-    printf("Error Reading CSD\r\n");
+    printf("\tError Reading CSD\r\n");
     return errorstate;
   }
   uint32_t CSD[4];
@@ -459,16 +508,30 @@ uint32_t SDMMC1_Config(void) {
   CSD[1] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP2);
   CSD[2] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP3);
   CSD[3] = SDMMC_GetResponse(SDMMC1, SDMMC_RESP4);
-  printf("CSD:\r\n%08X, %08X, %08X, %08X\r\n", CSD[0], CSD[1], CSD[2], CSD[3]);
-  printf("Class: %d\r\n", SDMMC_GetResponse(SDMMC1, SDMMC_RESP2) >> 20);
+  printf("\tCSD: %08X - %08X - %08X - %08X\r\n", CSD[0], CSD[1], CSD[2], CSD[3]);
+
+  printf("\tClass: %d\r\n", SDMMC_GetResponse(SDMMC1, SDMMC_RESP2) >> 20);
   
   errorstate = SDMMC_CmdSelDesel(SDMMC1, (uint32_t)(((uint32_t)sd_rel_addr) << 16U));
   if (errorstate != 0)
   {
-    printf("Error Selecting Card\r\n");
+    printf("\tError Selecting Card\r\n");
     return errorstate;
   }
+
+  errorstate = SDMMC_CmdBlockLength(SDMMC1, 512);
+  if (errorstate != 0)
+  {
+    /* Clear all the static flags */
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_STATIC_FLAGS);
+    printf("\tError Setting Blocksize\r\n");
+    return errorstate;
+  } else {
+    printf("\tBlocksize Set\r\n");
+  }
   
+  printf("SDMMC Configured\r\n");
+
   return 0;
 }
 
