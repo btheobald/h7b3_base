@@ -60,10 +60,9 @@ int main(void)
 
   printf("LTDC Configured\r\n");
 
-  LL_mDelay(100);
   LCD_Colour_Test();
   printf("\tLCD Colour Test\r\n");
-  LL_mDelay(100);
+  LL_mDelay(1000);
   LCD_Clear();
   printf("\tLCD Cleared\r\n");
 
@@ -142,6 +141,27 @@ void RCC_Config(void) {
   LL_RCC_PLL1_Enable();
   // Ensure PLL is locked
   while(LL_RCC_PLL1_IsReady() != 1) { }
+
+  //***** PLL2 *****//
+  // Enable PLL Outputs
+  LL_RCC_PLL2P_Enable();
+  LL_RCC_PLL2Q_Enable();
+  LL_RCC_PLL2R_Enable();
+  // Disable Fractional
+  LL_RCC_PLL2FRACN_Disable();
+  // VCO Ranges
+  LL_RCC_PLL2_SetVCOInputRange(LL_RCC_PLLINPUTRANGE_2_4);
+  LL_RCC_PLL2_SetVCOOutputRange(LL_RCC_PLLVCORANGE_WIDE);
+  // Prescalers
+  LL_RCC_PLL2_SetM(6);
+  LL_RCC_PLL2_SetN(100);
+  LL_RCC_PLL2_SetP(2);
+  LL_RCC_PLL2_SetQ(2);
+  LL_RCC_PLL2_SetR(8);
+  // Enable PLL
+  LL_RCC_PLL2_Enable();
+  // Ensure PLL is locked
+  while(LL_RCC_PLL2_IsReady() != 1) { }
 
     //***** PLL3 *****//
   // Enable PLL Outputs
@@ -364,7 +384,7 @@ void LCD_Clear(void) {
 
 uint32_t SDMMC1_Config(void) {
   LL_AHB3_GRP1_EnableClock(LL_AHB3_GRP1_PERIPH_SDMMC1);
-  LL_RCC_SetSDMMCClockSource(LL_RCC_SDMMC_CLKSOURCE_PLL1Q);
+  LL_RCC_SetSDMMCClockSource(LL_RCC_SDMMC_CLKSOURCE_PLL2R);
   LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOC | LL_AHB4_GRP1_PERIPH_GPIOD);
 
   LL_GPIO_SetPinMode(   SDIO1_CK_GPIO_Port,  SDIO1_CK_Pin,   LL_GPIO_MODE_ALTERNATE);
@@ -388,27 +408,29 @@ uint32_t SDMMC1_Config(void) {
   LL_GPIO_SetPinMode( uSD_Detect_GPIO_Port,  uSD_Detect_Pin, LL_GPIO_MODE_INPUT);
   LL_GPIO_SetPinPull( uSD_Detect_GPIO_Port,  uSD_Detect_Pin, LL_GPIO_PULL_UP);
 
-  SDMMC_InitTypeDef init;
-  init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-  init.ClockDiv = 128;
-  init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-  init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  init.BusWide = SDMMC_BUS_WIDE_1B;
-  
-  SDMMC_Init(SDMMC1, init);
-  SDMMC_PowerState_ON(SDMMC1);
-
-  LL_mDelay(10);
-
-  uint32_t errorstate;
-  
-  printf("SD Init\r\n");
+  printf("SDMMC Init\r\n");
 
   if (LL_GPIO_IsInputPinSet(uSD_Detect_GPIO_Port,uSD_Detect_Pin)) {
     printf("\tCard Not Present\r\n");
     return 0;
   } 
 
+  SDMMC_InitTypeDef init;
+  init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+  init.ClockDiv = 125; // Init to 400kHz
+  init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+  init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  init.BusWide = SDMMC_BUS_WIDE_1B;
+  
+  SDMMC_Init(SDMMC1, init);
+  SDMMC_PowerState_ON(SDMMC1);
+  
+  printf("\t1B/400kHz Mode\r\n");
+
+  LL_mDelay(10);
+
+  uint32_t errorstate;
+  
   errorstate = SDMMC_CmdGoIdleState(SDMMC1);
   if (errorstate != 0) return errorstate;
 
@@ -518,18 +540,135 @@ uint32_t SDMMC1_Config(void) {
     printf("\tError Selecting Card\r\n");
     return errorstate;
   }
+  
+  errorstate = SDMMC_CmdAppCommand(SDMMC1, (uint32_t)(sd_rel_addr << 16U));
+  if (errorstate != 0) return errorstate;
 
-  errorstate = SDMMC_CmdBlockLength(SDMMC1, 512);
-  if (errorstate != 0)
-  {
-    /* Clear all the static flags */
+  // Send ACMD6 APP_CMD with argument as 2 for wide bus mode 
+  errorstate = SDMMC_CmdBusWidth(SDMMC1, 2U);
+  if (errorstate != 0) return errorstate;
+
+  if(errorstate != 0) {
     __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_STATIC_FLAGS);
-    printf("\tError Setting Blocksize\r\n");
     return errorstate;
   } else {
-    printf("\tBlocksize Set\r\n");
+    init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+    init.ClockDiv = 125; // Init to 50MHz
+    init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+    init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+    init.BusWide = SDMMC_BUS_WIDE_4B;
+    SDMMC_Init(SDMMC1, init);
+    printf("\tACMD6: 4-Bit Bus Mode\r\n");
   }
+
+  uint32_t index = 0U;
+  uint32_t tempscr[2U] = {0UL, 0UL};
+  uint32_t scr[2] = {0};
+  SDMMC_DataInitTypeDef config;
+
+  /* Set Block Size To 8 Bytes */
+  errorstate = SDMMC_CmdBlockLength(SDMMC1, 8U);
+  if (errorstate != 0) return errorstate;
+
+  /* Send CMD55 APP_CMD with argument as card's RCA */
+  errorstate = SDMMC_CmdAppCommand(SDMMC1, (uint32_t)(sd_rel_addr << 16U));
+  if (errorstate != 0) return errorstate;
+
+  config.DataTimeOut   = SDMMC_DATATIMEOUT;
+  config.DataLength    = 8U;
+  config.DataBlockSize = SDMMC_DATABLOCK_SIZE_8B;
+  config.TransferDir   = SDMMC_TRANSFER_DIR_TO_SDMMC;
+  config.TransferMode  = SDMMC_TRANSFER_MODE_BLOCK;
+  config.DPSM          = SDMMC_DPSM_ENABLE;
+  SDMMC_ConfigData(SDMMC1, &config);
   
+  errorstate = SDMMC_CmdSendSCR(SDMMC1);
+  if (errorstate != 0) return errorstate; 
+
+  while (!__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_RXOVERR | SDMMC_FLAG_DCRCFAIL | SDMMC_FLAG_DTIMEOUT | SDMMC_FLAG_DBCKEND | SDMMC_FLAG_DATAEND)) {
+    if ((!__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_RXFIFOE)) && (index == 0U)) {
+      tempscr[0] = SDMMC_ReadFIFO(SDMMC1);
+      tempscr[1] = SDMMC_ReadFIFO(SDMMC1);
+      index++;
+    }
+  }
+
+  if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_DTIMEOUT)) {
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_FLAG_DTIMEOUT);
+    printf("Data Timeout");
+    return SDMMC_ERROR_DATA_TIMEOUT;
+  } else if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_DCRCFAIL)) {
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_FLAG_DCRCFAIL);
+    printf("CRC Mismatch");
+    return SDMMC_ERROR_DATA_CRC_FAIL; 
+  } else if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_RXOVERR)) {
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_FLAG_RXOVERR);
+    printf("RX Overrun");
+    return SDMMC_ERROR_RX_OVERRUN;
+  }
+
+  scr[0] = (((tempscr[1] & SDMMC_0TO7BITS) << 24)  | ((tempscr[1] & SDMMC_8TO15BITS) << 8) | \
+          ((tempscr[1] & SDMMC_16TO23BITS) >> 8) | ((tempscr[1] & SDMMC_24TO31BITS) >> 24));
+
+  scr[1] = (((tempscr[0] & SDMMC_0TO7BITS) << 24)  | ((tempscr[0] & SDMMC_8TO15BITS) << 8) | \
+          ((tempscr[0] & SDMMC_16TO23BITS) >> 8) | ((tempscr[0] & SDMMC_24TO31BITS) >> 24));
+
+  printf("\tSCR: %08X %08X\r\n", scr[1], scr[0]);
+
+  /* Set Block Size To 64 Bytes */
+  SDMMC1->DCTRL = 0;
+  errorstate = SDMMC_CmdBlockLength(SDMMC1, 64U);
+  if (errorstate != 0) return errorstate;
+
+  config.DataTimeOut   = SDMMC_DATATIMEOUT;
+  config.DataLength    = 64U;
+  config.DataBlockSize = SDMMC_DATABLOCK_SIZE_64B ;
+  config.TransferDir   = SDMMC_TRANSFER_DIR_TO_SDMMC;
+  config.TransferMode  = SDMMC_TRANSFER_MODE_BLOCK;
+  config.DPSM          = SDMMC_DPSM_ENABLE;
+  SDMMC_ConfigData(SDMMC1, &config);
+
+  errorstate = SDMMC_CmdSwitch(SDMMC1, SDMMC_SDR25_SWITCH_PATTERN);
+  if (errorstate != 0) return errorstate;
+  __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_STATIC_FLAGS);
+
+  index = 0;
+  uint32_t sdhs[16] = {0};
+  count = 0;
+  while (!__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_RXOVERR | SDMMC_FLAG_DCRCFAIL | SDMMC_FLAG_DTIMEOUT | SDMMC_FLAG_DBCKEND | SDMMC_FLAG_DATAEND)) {
+    if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_RXFIFOHF)) {
+      for(count = 0; count < 8; count++) {
+        sdhs[(8*index) + count] = SDMMC_ReadFIFO(SDMMC1);
+      }
+      index++;
+    }
+  }
+  printf("\t%CMD6: %08X - %08X - %08X - %08X - %08X\r\n", sdhs[0], sdhs[1], sdhs[2], sdhs[3], sdhs[4]);
+
+  if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_DTIMEOUT)) {
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_FLAG_DTIMEOUT);
+    printf("Data Timeout");
+    return SDMMC_ERROR_DATA_TIMEOUT;
+  } else if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_DCRCFAIL)) {
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_FLAG_DCRCFAIL);
+    printf("CRC Mismatch");
+    return SDMMC_ERROR_DATA_CRC_FAIL; 
+  } else if (__SDMMC_GET_FLAG(SDMMC1, SDMMC_FLAG_RXOVERR)) {
+    __SDMMC_CLEAR_FLAG(SDMMC1, SDMMC_FLAG_RXOVERR);
+    printf("RX Overrun");
+    return SDMMC_ERROR_RX_OVERRUN;
+  }
+
+  if ((((uint8_t *)sdhs)[13] & 2U) != 2U) {
+    printf("\t25MHz DS Mode\r\n");
+    init.ClockDiv = 2; // Init to 50MHz
+    SDMMC_Init(SDMMC1, init);
+  } else {
+    printf("\t50MHz HS Mode\r\n");    
+    init.ClockDiv = 1; // Init to 50MHz
+    SDMMC_Init(SDMMC1, init);
+  }
+
   printf("SDMMC Configured\r\n");
 
   return 0;
